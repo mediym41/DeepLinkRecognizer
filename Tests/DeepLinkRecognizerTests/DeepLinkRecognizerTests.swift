@@ -1106,6 +1106,112 @@ final class DeepLinkRecognizerTests: XCTestCase {
         }
     }
     
+    struct QueryRequiredArrayDoubleDeepLink: DeepLink {
+        public static let template = DeepLinkTemplate()
+            .queryStringParameters([.requiredArrayDouble(named: "array")])
+        
+        let url: URL
+        
+        public init(url: URL, values: DeepLinkValues) {
+            self.url = url
+            self.array = values.query["array"] as! [Double]
+        }
+        
+        let array: [Double]
+    }
+    
+    func testQueryArrayDoubleMatchs() {
+        let passedArray: [Double] = [1, -2.1, 0, 0.21, 100.1].shuffled()
+
+        var urlString = "http://domain.com/?"
+        urlString += passedArray.map { "array=\($0)" }.joined(separator: "&")
+        
+        let matchedURL = URL(string: urlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryRequiredArrayDoubleDeepLink.self])
+        if let result = recognizer.deepLink(matching: matchedURL) as? QueryRequiredArrayDoubleDeepLink {
+            XCTAssertEqual(result.array.sorted(), passedArray.sorted())
+        } else {
+            XCTFail()
+        }
+    }
+    
+    func testQueryArrayDoubleNotMatchs() {
+        let passedArray: [String] = ["first", "second", "next"].shuffled()
+
+        var urlString = "http://domain.com/?"
+        urlString += passedArray.map { "array=\($0)" }.joined(separator: "&")
+        
+        let matchedURL = URL(string: urlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryRequiredArrayDoubleDeepLink.self])
+        let result = recognizer.deepLink(matching: matchedURL)
+            
+        XCTAssertNil(result)
+    }
+    
+    func testQueryArrayDoubleWithTrashMatchs() {
+        let doubleArray: [Double] = [1, -2.1, 0, 0.21, 100.1]
+        let passedArray = (doubleArray.map { String($0) } + ["trash", "nil", "null"]).shuffled()
+
+        var urlString = "http://domain.com/?"
+        urlString += passedArray.map { "array=\($0)" }.joined(separator: "&")
+        
+        let matchedURL = URL(string: urlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryRequiredArrayDoubleDeepLink.self])
+        if let result = recognizer.deepLink(matching: matchedURL) as? QueryRequiredArrayDoubleDeepLink {
+            XCTAssertEqual(result.array.sorted(), doubleArray.sorted())
+        } else {
+            XCTFail()
+        }
+    }
+    
+    struct QueryOptionalArrayDoubleDeepLink: DeepLink {
+        public static let template = DeepLinkTemplate(pathParts: [.term("double")],
+                                                      parameters: [.optionalArrayDouble(named: "array")])
+        
+        let url: URL
+        
+        public init(url: URL, values: DeepLinkValues) {
+            self.url = url
+            self.array = values.query["array"] as? [Double]
+        }
+        
+        let array: [Double]?
+    }
+    
+    func testQueryOptionalArrayDoubleWithValuesMatchs() {
+        let passedArray: [Double] = [1, -2.1, 0, 0.21, 100.1].shuffled()
+
+        var urlString = "http://domain.com/double?foo=bar&"
+        urlString += passedArray.map { "array=\($0)" }.joined(separator: "&")
+        
+        let matchedURL = URL(string: urlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryOptionalArrayDoubleDeepLink.self])
+        if let result = recognizer.deepLink(matching: matchedURL) as? QueryOptionalArrayDoubleDeepLink {
+            XCTAssertEqual(result.array?.sorted(), passedArray.sorted())
+        } else {
+            XCTFail()
+        }
+    }
+    
+    func testQueryOptionalArrayDoubleWithoutValuesMatchs() {
+        
+        let urlString = "http://domain.com/double?foo=bar"
+        
+        let matchedURL = URL(string: urlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryOptionalArrayDoubleDeepLink.self])
+        
+        if let result = recognizer.deepLink(matching: matchedURL) as? QueryOptionalArrayDoubleDeepLink {
+            XCTAssertNil(result.array)
+        } else {
+            XCTFail()
+        }
+    }
+    
     // MARK: Percent decoding
         
     struct QueryRequiredStringDeepLink: DeepLink {
@@ -1130,6 +1236,35 @@ final class DeepLinkRecognizerTests: XCTestCase {
         let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryRequiredStringDeepLink.self])
         if let result = recognizer.deepLink(matching: matchedURL) as? QueryRequiredStringDeepLink {
             XCTAssertEqual(result.text, expectedDecodedText)
+        } else {
+            XCTFail()
+        }
+    }
+    
+    struct QueryRequiredArrayStringDeepLink: DeepLink {
+        public static let template = DeepLinkTemplate().queryStringParameters([.requiredArrayString(named: "text")])
+        
+        let url: URL
+        
+        public init(url: URL, values: DeepLinkValues) {
+            self.url = url
+            self.array = values.query["text"] as! [String]
+        }
+        
+        let array: [String]
+    }
+    
+    func testQueryArrayPercentDecoding() {
+        let passedEncodedText = ["Hello%20G%C3%BCnter", "Hello%20G%C3%BCnter_2"]
+        let expectedDecodedText = ["Hello Günter", "Hello Günter_2"]
+        
+        var baseUrlString = "http://google.com/?"
+        baseUrlString += passedEncodedText.map { "text=\($0)" }.joined(separator: "&")
+        let matchedURL = URL(string: baseUrlString)!
+        
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [QueryRequiredArrayStringDeepLink.self])
+        if let result = recognizer.deepLink(matching: matchedURL) as? QueryRequiredArrayStringDeepLink {
+            XCTAssertEqual(result.array.sorted(), expectedDecodedText.sorted())
         } else {
             XCTFail()
         }

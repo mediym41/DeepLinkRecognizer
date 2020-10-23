@@ -51,6 +51,10 @@ public struct DeepLinkTemplate {
         case requiredBool(named: String), optionalBool(named: String)
         case requiredDouble(named: String), optionalDouble(named: String)
         case requiredString(named: String), optionalString(named: String)
+        case requiredArrayInt(named: String), optionalArrayInt(named: String)
+        case requiredArrayBool(named: String), optionalArrayBool(named: String)
+        case requiredArrayDouble(named: String), optionalArrayDouble(named: String)
+        case requiredArrayString(named: String), optionalArrayString(named: String)
     }
     
     /// A named value in a URL's path string.

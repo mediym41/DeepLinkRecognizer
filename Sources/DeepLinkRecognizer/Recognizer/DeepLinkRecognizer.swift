@@ -104,9 +104,17 @@ public struct DeepLinkRecognizer {
             return [:]
         }
         
-        let requiredParameters = template.parameters.filter { $0.isRequired }
-        let optionalParameters = template.parameters.subtracting(requiredParameters)
+        var requiredParameters: [DeepLinkTemplate.QueryStringParameter] = []
+        var optionalParameters: [DeepLinkTemplate.QueryStringParameter] = []
         
+        for parameter in template.parameters {
+            if parameter.isRequired {
+                requiredParameters.append(parameter)
+            } else {
+                optionalParameters.append(parameter)
+            }
+        }
+                
         guard let query = url.query else {
             return requiredParameters.isEmpty ? [:] : nil
         }
@@ -128,7 +136,7 @@ public struct DeepLinkRecognizer {
         return values
     }
     
-    private typealias QueryMap = [String: String]
+    private typealias QueryMap = [String: [String]]
     private func createMap(of query: String) -> QueryMap {
         
         // Transforms "a=b&c=d" to [(a, b), (c, d)]
@@ -139,21 +147,45 @@ public struct DeepLinkRecognizer {
         
         var queryMap = QueryMap()
         for pair in keyValuePairs {
-            queryMap[pair[0]] = pair[1]
+            if queryMap[pair[0]] == nil {
+                queryMap[pair[0]] = [pair[1]]
+            } else {
+                queryMap[pair[0]]?.append(pair[1])
+            }
         }
         
         return queryMap
     }
-    
+        
     private func value(of parameter: DeepLinkTemplate.QueryStringParameter, in queryMap: QueryMap) -> Any? {
-        guard let value: String = queryMap[parameter.name] else { return nil }
+        guard let values: [String] = queryMap[parameter.name] else { return nil }
         
         switch parameter.type {
-        case .int:    return Int(value)
-        case .bool:   return Bool(value)
-        case .double: return Double(value)
-        case .string: return value.removingPercentEncoding ?? ""
+        case .int:
+            return values.first.map { Int($0) } ?? nil
+        case .bool:
+            return values.first.map { Bool($0) } ?? nil
+        case .double:
+            return values.first.map { Double($0) } ?? nil
+        case .string:
+            return values.first?.removingPercentEncoding ?? ""
+        case .arrayInt:
+            return transform(array: values, to: Int.self)
+        case .arrayBool:
+            return transform(array: values, to: Bool.self)
+        case .arrayDouble:
+            return transform(array: values, to: Double.self)
+        case .arrayString:
+            return values.compactMap { $0.removingPercentEncoding }
         }
+    }
+    
+    private func transform<T: LosslessStringConvertible>(array: [String], to type: T.Type) -> [T]? {
+        let transformed = array.compactMap { item in
+            return T(item)
+        }
+        
+        return !transformed.isEmpty ? transformed : nil
     }
 }
 
@@ -168,31 +200,63 @@ extension DeepLinkTemplate.QueryStringParameter: Hashable, Equatable {
     
     fileprivate var name: String {
         switch self {
-        case let .requiredInt(name):    return name
-        case let .requiredBool(name):   return name
-        case let .requiredDouble(name): return name
-        case let .requiredString(name): return name
-        case let .optionalInt(name):    return name
-        case let .optionalBool(name):   return name
-        case let .optionalDouble(name): return name
-        case let .optionalString(name): return name
+        case let .requiredInt(name):         return name
+        case let .requiredBool(name):        return name
+        case let .requiredDouble(name):      return name
+        case let .requiredString(name):      return name
+        case let .optionalInt(name):         return name
+        case let .optionalBool(name):        return name
+        case let .optionalDouble(name):      return name
+        case let .optionalString(name):      return name
+        case let .requiredArrayInt(name):    return name
+        case let .requiredArrayBool(name):   return name
+        case let .requiredArrayDouble(name): return name
+        case let .requiredArrayString(name): return name
+        case let .optionalArrayInt(name):    return name
+        case let .optionalArrayBool(name):   return name
+        case let .optionalArrayDouble(name): return name
+        case let .optionalArrayString(name): return name
+            
         }
     }
     
-    fileprivate enum ParameterType { case string, int, double, bool }
+    fileprivate enum ParameterType {
+        case string, int, double, bool
+        case arrayString, arrayInt, arrayDouble, arrayBool
+    }
+    
     fileprivate var type: ParameterType {
         switch self {
         case .requiredInt, .optionalInt:       return .int
         case .requiredBool, .optionalBool:     return .bool
         case .requiredDouble, .optionalDouble: return .double
         case .requiredString, .optionalString: return .string
+        case .requiredArrayInt, .optionalArrayInt: return .arrayInt
+        case .requiredArrayBool, .optionalArrayBool: return .arrayBool
+        case .requiredArrayDouble, .optionalArrayDouble: return .arrayDouble
+        case .requiredArrayString, .optionalArrayString: return .arrayString
         }
     }
     
     fileprivate var isRequired: Bool {
         switch self {
-        case .requiredInt, .requiredBool, .requiredDouble, .requiredString: return true
-        case .optionalInt, .optionalBool, .optionalDouble, .optionalString: return false
+        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
+             .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString:
+            return true
+        case .optionalInt, .optionalBool, .optionalDouble, .optionalString,
+             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
+            return false
+        }
+    }
+    
+    fileprivate var isArray: Bool {
+        switch self {
+        case .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString,
+             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
+            return true
+        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
+             .optionalInt, .optionalBool, .optionalDouble, .optionalString:
+            return false
         }
     }
 }
