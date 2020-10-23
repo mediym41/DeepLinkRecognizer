@@ -50,7 +50,7 @@ public struct DeepLinkRecognizer {
             return  rhs.type.template.isPriorityMore(than: lhs.type.template)
         }
         
-        return result.map { $0.type.init(url: url, values: $0.value) }
+        return result.flatMap { $0.type.init(url: url, values: $0.value) }
     }
     
     // MARK: - URL value extraction

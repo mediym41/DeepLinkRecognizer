@@ -16,7 +16,7 @@ public protocol DeepLink {
     /// Initializes a new instance with values extracted from a URL.
     /// - Parameter url: Original URL
     /// - Parameter values: Data values from a URL, whose keys are the names specified in a `DeepLinkTemplate`.
-    init(url: URL, values: DeepLinkValues)
+    init?(url: URL, values: DeepLinkValues)
 }
 
 /// Data values extracted from a URL by a deep link template.
