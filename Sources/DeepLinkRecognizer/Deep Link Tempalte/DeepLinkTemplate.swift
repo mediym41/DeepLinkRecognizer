@@ -12,11 +12,9 @@ import Foundation
 public protocol DeepLink {
     /// Returns a template that describes how to match and extract values from a URL.
     static var template: DeepLinkTemplate { get }
-    
-    /// Returns a origin url
-    var url: URL { get }
-    
+        
     /// Initializes a new instance with values extracted from a URL.
+    /// - Parameter url: Original URL
     /// - Parameter values: Data values from a URL, whose keys are the names specified in a `DeepLinkTemplate`.
     init(url: URL, values: DeepLinkValues)
 }
@@ -126,35 +124,129 @@ public struct DeepLinkTemplate {
 
 // MARK: - Helpers
 
-extension DeepLinkTemplate {
+extension DeepLinkTemplate.PathPart {
     
-    var priority: UInt64 {
-        
-        guard self.pathParts.count < 20 else { // overflow
-            return .max
+    var priority: Int {
+        switch self {
+        case .any:
+            return 0
+        case .string:
+            return 1
+        case .double:
+            return 2
+        case .int, .bool:
+            return 3
+        case .term:
+            return 4
         }
-        
-        var result: UInt64 = 0
-        
-        for pathPart in pathParts {
-            
-            result *= 10
-            
-            switch pathPart {
-            case .any:
-                result += 0
-            case .string:
-                result += 1
-            case .double:
-                result += 2
-            case .int, .bool:
-                result += 3
-            case .term:
-                result += 4
-            }
-        }
-        
-        return result
     }
     
+}
+
+
+extension DeepLinkTemplate.QueryStringParameter: Hashable, Equatable {
+    public func hash(into hasher: inout Hasher) {
+        return hasher.combine(name)
+    }
+    
+    public static func == (lhs: DeepLinkTemplate.QueryStringParameter, rhs: DeepLinkTemplate.QueryStringParameter) -> Bool {
+        return lhs.name == rhs.name
+    }
+    
+    public var name: String {
+        switch self {
+        case let .requiredInt(name):         return name
+        case let .requiredBool(name):        return name
+        case let .requiredDouble(name):      return name
+        case let .requiredString(name):      return name
+        case let .optionalInt(name):         return name
+        case let .optionalBool(name):        return name
+        case let .optionalDouble(name):      return name
+        case let .optionalString(name):      return name
+        case let .requiredArrayInt(name):    return name
+        case let .requiredArrayBool(name):   return name
+        case let .requiredArrayDouble(name): return name
+        case let .requiredArrayString(name): return name
+        case let .optionalArrayInt(name):    return name
+        case let .optionalArrayBool(name):   return name
+        case let .optionalArrayDouble(name): return name
+        case let .optionalArrayString(name): return name
+            
+        }
+    }
+    
+    enum ParameterType {
+        case string, int, double, bool
+        case arrayString, arrayInt, arrayDouble, arrayBool
+    }
+    
+    var type: ParameterType {
+        switch self {
+        case .requiredInt, .optionalInt:       return .int
+        case .requiredBool, .optionalBool:     return .bool
+        case .requiredDouble, .optionalDouble: return .double
+        case .requiredString, .optionalString: return .string
+        case .requiredArrayInt, .optionalArrayInt: return .arrayInt
+        case .requiredArrayBool, .optionalArrayBool: return .arrayBool
+        case .requiredArrayDouble, .optionalArrayDouble: return .arrayDouble
+        case .requiredArrayString, .optionalArrayString: return .arrayString
+        }
+    }
+    
+    var isRequired: Bool {
+        switch self {
+        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
+             .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString:
+            return true
+        case .optionalInt, .optionalBool, .optionalDouble, .optionalString,
+             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
+            return false
+        }
+    }
+    
+    var isArray: Bool {
+        switch self {
+        case .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString,
+             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
+            return true
+        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
+             .optionalInt, .optionalBool, .optionalDouble, .optionalString:
+            return false
+        }
+    }
+}
+
+
+extension DeepLinkTemplate {
+    
+    func isPriorityMore(than another: DeepLinkTemplate) -> Bool {
+        let lhs = self
+        let rhs = another
+        
+        guard pathParts.count == another.pathParts.count else {
+            return pathParts.count > another.pathParts.count
+        }
+        
+        for index in 0 ..< pathParts.count {
+            let lhsPriority = lhs.pathParts[index].priority
+            let rhsPriority = rhs.pathParts[index].priority
+            
+            guard lhsPriority != rhsPriority else {
+                continue
+            }
+            
+            return lhsPriority > rhsPriority
+        }
+        
+        let lhsCountOfRequiredQueryParams = lhs.parameters.reduce(0) { result, next in
+            return next.isRequired ? result + 1 : result
+        }
+        
+        let rhsCountOfRequiredQueryParams = rhs.parameters.reduce(0) { result, next in
+            return next.isRequired ? result + 1 : result
+        }
+        
+        return lhsCountOfRequiredQueryParams > rhsCountOfRequiredQueryParams
+    }
+
 }

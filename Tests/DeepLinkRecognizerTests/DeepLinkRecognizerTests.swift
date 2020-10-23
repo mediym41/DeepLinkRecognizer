@@ -1705,6 +1705,58 @@ final class DeepLinkRecognizerTests: XCTestCase {
     
     // MARK: Query
     
+    struct CollisionOptionalQueryDeepLink: DeepLink {
+        static var template = DeepLinkTemplate(pathParts: [
+            .term("term"),
+            .int("int"),
+            .string("string")
+        ], parameters: [
+            .requiredArrayBool(named: "q_array"),
+            .optionalInt(named: "q_int"),
+            .optionalBool(named: "q_bool")
+        ])
+        
+        init(url: URL, values: DeepLinkValues) { }
+    }
+    
+    struct CollisionRequiredQueryDeepLink: DeepLink {
+        static var template = DeepLinkTemplate(pathParts: [
+            .term("term"),
+            .int("int"),
+            .string("string")
+        ], parameters: [
+            .optionalArrayBool(named: "q_array"),
+            .requiredInt(named: "q_int"),
+            .requiredBool(named: "q_bool")
+        ])
+        
+        init(url: URL, values: DeepLinkValues) { }
+    }
+    
+    func testQueryCollisionByAscendingOrder() {
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [CollisionOptionalQueryDeepLink.self,
+                                                            CollisionRequiredQueryDeepLink.self])
+        let url = URL(string: "http://domain.com/term/1/foo/?q_array=true&q_int=12&q_bool=false&q_array=141")!
+        
+        // When
+        let deepLink = recognizer.deepLink(matching: url)
+        
+        XCTAssertTrue(deepLink is CollisionRequiredQueryDeepLink)
+    }
+    
+    func testQueryCollisionByDescendingOrder() {
+        let recognizer = DeepLinkRecognizer(deepLinkTypes: [CollisionRequiredQueryDeepLink.self,
+                                                            CollisionOptionalQueryDeepLink.self])
+        let url = URL(string: "http://domain.com/term/1/foo/?q_array=true&q_int=12&q_bool=false&q_array=141")!
+        
+        // When
+        let deepLink = recognizer.deepLink(matching: url)
+        
+        XCTAssertTrue(deepLink is CollisionRequiredQueryDeepLink)
+    }
+    
+    // MARK: Fragment
+    
     struct FragmentDeepLink: DeepLink {
         public static let template = DeepLinkTemplate(pathParts: [.any])
         let url: URL
@@ -1715,7 +1767,7 @@ final class DeepLinkRecognizerTests: XCTestCase {
         }
     }
 
-    func testQueryCollisionByAscendingOrder() {
+    func testFragmentParsing() {
         
         let recognizer = DeepLinkRecognizer(deepLinkTypes: [FragmentDeepLink.self])
         let termDeepLink = URL(string: "http://domain.com/any#discount")!

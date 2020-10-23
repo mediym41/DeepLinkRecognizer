@@ -46,7 +46,9 @@ public struct DeepLinkRecognizer {
         }
         
         // fix collisions, get the most specific template
-        let result = candidates.max(by: { $0.type.template.priority < $1.type.template.priority })
+        let result = candidates.max { lhs, rhs in
+            return  rhs.type.template.isPriorityMore(than: lhs.type.template)
+        }
         
         return result.map { $0.type.init(url: url, values: $0.value) }
     }
@@ -186,77 +188,5 @@ public struct DeepLinkRecognizer {
         }
         
         return !transformed.isEmpty ? transformed : nil
-    }
-}
-
-extension DeepLinkTemplate.QueryStringParameter: Hashable, Equatable {
-    public func hash(into hasher: inout Hasher) {
-        return hasher.combine(name)
-    }
-    
-    public static func == (lhs: DeepLinkTemplate.QueryStringParameter, rhs: DeepLinkTemplate.QueryStringParameter) -> Bool {
-        return lhs.name == rhs.name
-    }
-    
-    fileprivate var name: String {
-        switch self {
-        case let .requiredInt(name):         return name
-        case let .requiredBool(name):        return name
-        case let .requiredDouble(name):      return name
-        case let .requiredString(name):      return name
-        case let .optionalInt(name):         return name
-        case let .optionalBool(name):        return name
-        case let .optionalDouble(name):      return name
-        case let .optionalString(name):      return name
-        case let .requiredArrayInt(name):    return name
-        case let .requiredArrayBool(name):   return name
-        case let .requiredArrayDouble(name): return name
-        case let .requiredArrayString(name): return name
-        case let .optionalArrayInt(name):    return name
-        case let .optionalArrayBool(name):   return name
-        case let .optionalArrayDouble(name): return name
-        case let .optionalArrayString(name): return name
-            
-        }
-    }
-    
-    fileprivate enum ParameterType {
-        case string, int, double, bool
-        case arrayString, arrayInt, arrayDouble, arrayBool
-    }
-    
-    fileprivate var type: ParameterType {
-        switch self {
-        case .requiredInt, .optionalInt:       return .int
-        case .requiredBool, .optionalBool:     return .bool
-        case .requiredDouble, .optionalDouble: return .double
-        case .requiredString, .optionalString: return .string
-        case .requiredArrayInt, .optionalArrayInt: return .arrayInt
-        case .requiredArrayBool, .optionalArrayBool: return .arrayBool
-        case .requiredArrayDouble, .optionalArrayDouble: return .arrayDouble
-        case .requiredArrayString, .optionalArrayString: return .arrayString
-        }
-    }
-    
-    fileprivate var isRequired: Bool {
-        switch self {
-        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
-             .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString:
-            return true
-        case .optionalInt, .optionalBool, .optionalDouble, .optionalString,
-             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
-            return false
-        }
-    }
-    
-    fileprivate var isArray: Bool {
-        switch self {
-        case .requiredArrayInt, .requiredArrayBool, .requiredArrayDouble, .requiredArrayString,
-             .optionalArrayInt, .optionalArrayBool, .optionalArrayDouble, .optionalArrayString:
-            return true
-        case .requiredInt, .requiredBool, .requiredDouble, .requiredString,
-             .optionalInt, .optionalBool, .optionalDouble, .optionalString:
-            return false
-        }
     }
 }
