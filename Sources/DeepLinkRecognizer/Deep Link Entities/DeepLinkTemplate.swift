@@ -19,24 +19,6 @@ public protocol DeepLink {
     init?(url: URL, values: DeepLinkValues)
 }
 
-/// Data values extracted from a URL by a deep link template.
-public struct DeepLinkValues {
-    /// Values in the URL's path, whose keys are the names specified in a deep link template.
-    public let path: [String: Any]
-    
-    /// Values in the URL's query string, whose keys are the names specified in a deep link template.
-    public let query: [String: Any]
-    
-    /// The URL's fragment (i.e. text following a # symbol), if available.
-    public let fragment: String?
-    
-    public init(path: [String: Any], query: [String: Any], fragment: String?) {
-        self.path = path
-        self.query = query
-        self.fragment = fragment
-    }
-}
-
 /// Describes how to extract a deep link's values from a URL.
 /// A template is considered to match a URL if all of its required values are found in the URL.
 public struct DeepLinkTemplate {
@@ -45,22 +27,22 @@ public struct DeepLinkTemplate {
     
     /// A named value in a URL's query string.
     public enum QueryStringParameter {
-        case requiredInt(named: String), optionalInt(named: String)
-        case requiredBool(named: String), optionalBool(named: String)
-        case requiredDouble(named: String), optionalDouble(named: String)
-        case requiredString(named: String), optionalString(named: String)
-        case requiredArrayInt(named: String), optionalArrayInt(named: String)
-        case requiredArrayBool(named: String), optionalArrayBool(named: String)
-        case requiredArrayDouble(named: String), optionalArrayDouble(named: String)
-        case requiredArrayString(named: String), optionalArrayString(named: String)
+        case requiredInt(named: DeepLinkParameterKey), optionalInt(named: DeepLinkParameterKey)
+        case requiredBool(named: DeepLinkParameterKey), optionalBool(named: DeepLinkParameterKey)
+        case requiredDouble(named: DeepLinkParameterKey), optionalDouble(named: DeepLinkParameterKey)
+        case requiredString(named: DeepLinkParameterKey), optionalString(named: DeepLinkParameterKey)
+        case requiredArrayInt(named: DeepLinkParameterKey), optionalArrayInt(named: DeepLinkParameterKey)
+        case requiredArrayBool(named: DeepLinkParameterKey), optionalArrayBool(named: DeepLinkParameterKey)
+        case requiredArrayDouble(named: DeepLinkParameterKey), optionalArrayDouble(named: DeepLinkParameterKey)
+        case requiredArrayString(named: DeepLinkParameterKey), optionalArrayString(named: DeepLinkParameterKey)
     }
     
     /// A named value in a URL's path string.
     public enum PathPart {
-        case int(_ label: String)
-        case bool(_ label: String)
-        case string(_ label: String)
-        case double(_ label: String)
+        case int(_ label: DeepLinkParameterKey)
+        case bool(_ label: DeepLinkParameterKey)
+        case string(_ label: DeepLinkParameterKey)
+        case double(_ label: DeepLinkParameterKey)
         case term(_ component: String)
         case any
     }
@@ -143,7 +125,6 @@ extension DeepLinkTemplate.PathPart {
     
 }
 
-
 extension DeepLinkTemplate.QueryStringParameter: Hashable, Equatable {
     public func hash(into hasher: inout Hasher) {
         return hasher.combine(name)
@@ -155,22 +136,22 @@ extension DeepLinkTemplate.QueryStringParameter: Hashable, Equatable {
     
     public var name: String {
         switch self {
-        case let .requiredInt(name):         return name
-        case let .requiredBool(name):        return name
-        case let .requiredDouble(name):      return name
-        case let .requiredString(name):      return name
-        case let .optionalInt(name):         return name
-        case let .optionalBool(name):        return name
-        case let .optionalDouble(name):      return name
-        case let .optionalString(name):      return name
-        case let .requiredArrayInt(name):    return name
-        case let .requiredArrayBool(name):   return name
-        case let .requiredArrayDouble(name): return name
-        case let .requiredArrayString(name): return name
-        case let .optionalArrayInt(name):    return name
-        case let .optionalArrayBool(name):   return name
-        case let .optionalArrayDouble(name): return name
-        case let .optionalArrayString(name): return name
+        case let .requiredInt(name):         return name.stringValue
+        case let .requiredBool(name):        return name.stringValue
+        case let .requiredDouble(name):      return name.stringValue
+        case let .requiredString(name):      return name.stringValue
+        case let .optionalInt(name):         return name.stringValue
+        case let .optionalBool(name):        return name.stringValue
+        case let .optionalDouble(name):      return name.stringValue
+        case let .optionalString(name):      return name.stringValue
+        case let .requiredArrayInt(name):    return name.stringValue
+        case let .requiredArrayBool(name):   return name.stringValue
+        case let .requiredArrayDouble(name): return name.stringValue
+        case let .requiredArrayString(name): return name.stringValue
+        case let .optionalArrayInt(name):    return name.stringValue
+        case let .optionalArrayBool(name):   return name.stringValue
+        case let .optionalArrayDouble(name): return name.stringValue
+        case let .optionalArrayString(name): return name.stringValue
             
         }
     }

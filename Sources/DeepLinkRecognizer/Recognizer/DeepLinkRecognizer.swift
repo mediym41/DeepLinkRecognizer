@@ -69,26 +69,26 @@ public struct DeepLinkRecognizer {
         return allComponents.compactMap { $0.removingPercentEncoding }
     }
     
-    private func extractPathValues(in template: DeepLinkTemplate, from components: [String]) -> [String: Any]? {
+    private func extractPathValues(in template: DeepLinkTemplate, from components: [String]) -> [String: DeepLinkParameter]? {
         guard components.count == template.pathParts.count else { return nil }
         
-        var values = [String: Any]()
+        var values = [String: DeepLinkParameter]()
         for (pathPart, component) in zip(template.pathParts, components) {
             switch pathPart {
-            case .int(let label):
+            case .int(let key):
                 guard let value = Int(component) else { return nil }
-                values[label] = value
+                values[key.stringValue] = value
                 
-            case .bool(let label):
+            case .bool(let key):
                 guard let value = Bool(component) else { return nil }
-                values[label] = value
+                values[key.stringValue] = value
                 
-            case .double(let label):
+            case .double(let key):
                 guard let value = Double(component) else { return nil }
-                values[label] = value
+                values[key.stringValue] = value
                 
-            case .string(let label):
-                values[label] = component
+            case .string(let key):
+                values[key.stringValue] = component
                 
             case .term(let pathPart):
                 guard pathPart == component else { return nil }
@@ -101,7 +101,7 @@ public struct DeepLinkRecognizer {
         return values
     }
     
-    private func extractQueryValues(in template: DeepLinkTemplate, from url: URL) -> [String: Any]? {
+    private func extractQueryValues(in template: DeepLinkTemplate, from url: URL) -> [String: DeepLinkParameter]? {
         guard template.parameters.isEmpty == false else {
             return [:]
         }
@@ -122,7 +122,7 @@ public struct DeepLinkRecognizer {
         }
         
         let queryMap = createMap(of: query)
-        var values = [String: Any]()
+        var values = [String: DeepLinkParameter]()
         
         for parameter in requiredParameters {
             guard let value = value(of: parameter, in: queryMap) else { return nil }
@@ -159,7 +159,7 @@ public struct DeepLinkRecognizer {
         return queryMap
     }
         
-    private func value(of parameter: DeepLinkTemplate.QueryStringParameter, in queryMap: QueryMap) -> Any? {
+    private func value(of parameter: DeepLinkTemplate.QueryStringParameter, in queryMap: QueryMap) -> DeepLinkParameter? {
         guard let values: [String] = queryMap[parameter.name] else { return nil }
         
         switch parameter.type {
@@ -182,7 +182,7 @@ public struct DeepLinkRecognizer {
         }
     }
     
-    private func transform<T: LosslessStringConvertible>(array: [String], to type: T.Type) -> [T]? {
+    private func transform<T: LosslessStringConvertible & DeepLinkParameter>(array: [String], to type: T.Type) -> [T]? {
         let transformed = array.compactMap { item in
             return T(item)
         }

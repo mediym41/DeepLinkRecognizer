@@ -18,7 +18,7 @@ var recognizer = DeepLinkRecognizer(deepLinkTypes: supportedDeepLinkTypes)
 let simpleUrl = URL(string: "https://domain.com/mediym41/DeepLinkRecognizer?q=search%20query&param=12")!
 let complexUrl = URL(string: "https://domain.com/category/124/food/12.5?query=apple&max_price=10&min_price=5#discount")!
 
-let deepLinkType = recognizer.deepLink(matching: complexUrl)
+let deepLinkType = recognizer.deepLink(matching: simpleUrl)
 
 switch deepLinkType {
 case let simpleDeepLink as SimpleDeepLink:
